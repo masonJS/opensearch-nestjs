@@ -12,7 +12,10 @@ Initial public release as `opensearch-nestjs`. Extracted from internal `@us-all/
 ### Added
 
 - `OpensearchModule` with `forRoot()` and `forRootAsync()` registration
-- `OpensearchService` with search, CRUD, bulk, and index management operations
+- Service layer split into three injectable services:
+  - `OpensearchSearchService` — `search`, `count`
+  - `OpensearchDocumentService` — `create`, `getOne`, `update`, `upsert`, `delete`, bulk operations (`bulkCreate`, `bulkUpdate`, `bulkUpsert`, `bulkDelete`, `deleteByQuery`)
+  - `OpensearchIndexService` — `create`, `delete`, `putMapping`
 - Type-safe `OpenSearchQueryBuilder` with `createQuery<T>()`
   - Query methods: `term`, `match`, `wildcard`, `range`, `exists`, `multiMatch`
   - Bool query: `must`, `should`, `filter`, `mustNot` with `minimumShouldMatch`
@@ -21,6 +24,8 @@ Initial public release as `opensearch-nestjs`. Extracted from internal `@us-all/
   - Highlight: `field`, `fields`, `tags`, `highlightQuery`
   - Source filtering: `source`
   - Conditional building: `when`, `whenElse`, `each`
+  - Raw query injection: `setQuery`, `query` (on `QueryCollectionBuilder`)
+- Nested field path support via `FlattenedKeys<T>` for dot-notation access (e.g. `'metadata.author'`)
 - `SearchResponse<T>` with `total`, `hits`, `isEmpty`, `cursor`
 - `SearchHitResponse<T>` with `getHighlight`, `getHighlightFirst`, `getHighlightSentence`
 - `CreateIndexResponse`

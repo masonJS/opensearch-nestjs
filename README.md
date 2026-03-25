@@ -6,6 +6,7 @@ A [NestJS](https://nestjs.com/) module for [OpenSearch](https://opensearch.org/)
 
 - NestJS dynamic module with `forRoot` / `forRootAsync`
 - Type-safe fluent query builder with full-text search, term, range, wildcard, bool, and multi-match support
+- Nested field path support via `FlattenedKeys<T>` (e.g. `'metadata.author'`)
 - Typed search responses with highlight utilities
 - CRUD and bulk operations (create, update, upsert, delete)
 - Index management (create, delete, put mapping)
@@ -61,11 +62,11 @@ OpensearchModule.forRootAsync({
 });
 ```
 
-### 2. Inject and use the service
+### 2. Inject and use the services
 
 ```typescript
 import { Injectable } from '@nestjs/common';
-import { OpensearchService, createQuery } from 'opensearch-nestjs';
+import { OpensearchSearchService, createQuery } from 'opensearch-nestjs';
 
 interface Article {
   title: string;
@@ -76,7 +77,7 @@ interface Article {
 
 @Injectable()
 export class ArticleSearchService {
-  constructor(private readonly opensearch: OpensearchService) {}
+  constructor(private readonly searchService: OpensearchSearchService) {}
 
   async search(keyword: string, category?: string) {
     const query = createQuery<Article>()
@@ -95,7 +96,7 @@ export class ArticleSearchService {
       .size(20)
       .build();
 
-    return this.opensearch.search<Article>('articles', query);
+    return this.searchService.search<Article>('articles', query);
   }
 }
 ```
@@ -109,26 +110,26 @@ export class ArticleSearchService {
 | `OpensearchModule.forRoot(options)` | Register with static options |
 | `OpensearchModule.forRootAsync(options)` | Register with async factory |
 
-Both methods export `OpensearchService` and the OpenSearch `Client`.
+Both methods export `OpensearchSearchService`, `OpensearchDocumentService`, `OpensearchIndexService`, and the OpenSearch `Client`.
 
-### OpensearchService
-
-#### Search
+### OpensearchSearchService
 
 | Method | Description |
 |--------|-------------|
 | `search<T>(index, query)` | Search documents. Accepts single index or array of indices |
 | `count(index, query?)` | Count documents, optionally filtered by query |
 
+### OpensearchDocumentService
+
 #### CRUD
 
 | Method | Description |
 |--------|-------------|
-| `createDocument<T>(index, body)` | Index a new document |
-| `getDocument<T>(index, id)` | Get document by ID, returns `null` if not found |
-| `updateDocument<T>(index, id, doc)` | Partial update |
-| `upsertDocument<T>(index, id, doc)` | Update or insert (`doc_as_upsert`) |
-| `deleteDocument(index, id)` | Delete by ID (no-op if not found) |
+| `create<T>(index, body)` | Index a new document |
+| `getOne<T>(index, id)` | Get document by ID, returns `null` if not found |
+| `update<T>(index, id, doc)` | Partial update |
+| `upsert<T>(index, id, doc)` | Update or insert (`doc_as_upsert`) |
+| `delete(index, id)` | Delete by ID (no-op if not found) |
 
 #### Bulk Operations
 
@@ -140,12 +141,12 @@ Both methods export `OpensearchService` and the OpenSearch `Client`.
 | `bulkDelete(index, ids)` | Bulk delete by IDs |
 | `deleteByQuery(index, query)` | Delete documents matching query |
 
-#### Index Management
+### OpensearchIndexService
 
 | Method | Description |
 |--------|-------------|
-| `createIndex(index, body)` | Create index (skips if already exists) |
-| `deleteIndex(index)` | Delete index (no-op if not found) |
+| `create(index, body)` | Create index (skips if already exists) |
+| `delete(index)` | Delete index (no-op if not found) |
 | `putMapping(index, properties)` | Update index mapping |
 
 ### Query Builder
@@ -183,10 +184,22 @@ const query = createQuery<MyDocument>()
 | `term(field, value, boost?)` | Exact match on keyword field |
 | `match(field, query, boost?)` | Full-text search |
 | `wildcard(field, pattern, boost?)` | Wildcard pattern match |
-| `range(field, { gte?, lte?, gt?, lt? })` | Range query |
+| `range(field, range)` | Range query (`gte`, `lte`, `gt`, `lt`, `format`, `time_zone`, `boost`) |
 | `exists(field)` | Field existence check |
 | `multiMatch(query, fields, type?)` | Multi-field full-text search |
-| `bool(builder)` | Bool query (must, should, filter, must_not) |
+| `bool(builder)` | Bool query (`must`, `should`, `filter`, `mustNot`) |
+| `setQuery(query)` | Set a raw query object directly |
+
+All field parameters accept both `keyof T` and nested dot-notation paths via `FlattenedKeys<T>`.
+
+#### QueryCollectionBuilder
+
+Within `must`, `should`, `filter`, and `mustNot` callbacks, additional methods are available:
+
+| Method | Description |
+|--------|-------------|
+| `query(customQuery)` | Add a raw `Query` object |
+| `bool(builder)` | Nested bool query |
 
 #### Sorting
 
@@ -207,7 +220,7 @@ createQuery<T>().sort((sort) => {
 createQuery<T>().from(0).size(20);
 
 // Cursor-based (search_after)
-const result = await opensearch.search<T>('index', query);
+const result = await searchService.search<T>('index', query);
 const nextQuery = createQuery<T>()
   .sortBy('createdAt', 'desc')
   .lastIdFromCursor(result.cursor)
@@ -232,9 +245,18 @@ createQuery<T>()
   .highlight((h) => {
     h.tags(['<mark>'], ['</mark>'])
       .field('title', { fragmentSize: 150, numberOfFragments: 3 })
-      .field('body');
+      .field('body')
+      .fields([{ name: 'title' }, { name: 'body', fragmentSize: 200 }])
+      .highlightQuery({ match: { title: { query: 'keyword' } } });
   });
 ```
+
+| Method | Description |
+|--------|-------------|
+| `field(name, options?)` | Add a single highlight field |
+| `fields(entries)` | Add multiple highlight fields at once |
+| `tags(preTags, postTags)` | Set highlight tags |
+| `highlightQuery(query)` | Set a separate query for highlighting |
 
 #### Source Filtering
 
@@ -271,7 +293,7 @@ createQuery<T>()
 ### Search Response
 
 ```typescript
-const result = await opensearch.search<Article>('articles', query);
+const result = await searchService.search<Article>('articles', query);
 
 result.total;     // Total number of matching documents
 result.hits;      // Array of SearchHitResponse<T>
@@ -282,6 +304,7 @@ result.cursor;    // Cursor string for next page (search_after)
 result.hits[0].id;       // Document ID
 result.hits[0].source;   // Document body (typed as T)
 result.hits[0].score;    // Relevance score
+result.hits[0].sort;     // Sort values (SearchAfter)
 result.hits[0].index;    // Index name
 
 // Highlight utilities
@@ -309,7 +332,7 @@ const articleMapping = createIndexMapping()
   .date('updatedAt')
   .build();
 
-await opensearchService.createIndex('articles', articleMapping);
+await indexService.create('articles', articleMapping);
 ```
 
 #### Field Methods
