@@ -3,9 +3,6 @@ import { Client } from '@opensearch-project/opensearch';
 import {
   createQuery,
   OpensearchModule,
-  OpensearchDocumentService,
-  OpensearchSearchService,
-  OpensearchIndexService,
 } from '../../../../src/index.js';
 import {
   TestDoc,
@@ -18,9 +15,6 @@ import { TestFixture } from '../test-fixture.js';
 describe('OpensearchQueryBuilder', () => {
   let module: TestingModule;
   let client: Client;
-  let documentService: OpensearchDocumentService;
-  let searchService: OpensearchSearchService;
-  let indexService: OpensearchIndexService;
   let fixture: TestFixture;
 
   beforeAll(async () => {
@@ -28,13 +22,6 @@ describe('OpensearchQueryBuilder', () => {
       imports: [OpensearchModule.forRoot({ node: 'http://localhost:9200' })],
     }).compile();
     client = module.get<Client>(Client);
-    documentService = module.get<OpensearchDocumentService>(
-      OpensearchDocumentService,
-    );
-    searchService = module.get<OpensearchSearchService>(
-      OpensearchSearchService,
-    );
-    indexService = module.get<OpensearchIndexService>(OpensearchIndexService);
 
     fixture = new TestFixture(client, TEST_INDEX_NAME);
     await fixture.createIndex(TEST_INDEX_SETTINGS);
@@ -515,29 +502,31 @@ describe('OpensearchQueryBuilder', () => {
   describe('lastIdFromCursor()', () => {
     it('sets search_after from valid cursor', async () => {
       const firstDoc = await fixture.insertDocument(
-        createTestDoc('a title', 'body', 'TEST_A'),
+        createTestDoc('a title', 'body', 'TEST_A', new Date('2025-01-01')),
       );
-      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_B'));
+      await fixture.insertDocument(
+        createTestDoc('title', 'body', 'TEST_B', new Date('2025-01-02')),
+      );
 
-      const searchRes = await fixture.findQuery(
+      const firstPage = await fixture.findQuery(
         createQuery<TestDoc>()
           .sort((sort) => {
-            sort.field('_id', 'desc');
+            sort.field('createdAt', 'desc');
           })
           .size(1),
       );
 
-      const result = await fixture.findQuery(
+      const secondPage = await fixture.findQuery(
         createQuery<TestDoc>()
           .sort((sort) => {
-            sort.field('_id', 'desc');
+            sort.field('createdAt', 'desc');
           })
-          .lastIdFromCursor(searchRes.cursor)
+          .lastIdFromCursor(firstPage.cursor)
           .size(1),
       );
 
-      expect(result.hits).toHaveLength(1);
-      expect(result.hits[0].id).toBe(firstDoc.id);
+      expect(secondPage.hits).toHaveLength(1);
+      expect(secondPage.hits[0].id).toBe(firstDoc.id);
     });
 
     it('no-op for null cursor', async () => {
@@ -677,56 +666,6 @@ describe('OpensearchQueryBuilder', () => {
     });
   });
 
-  describe('OpensearchDocumentService delete', () => {
-    it('deleteDocument() deletes a document', async () => {
-      const doc = await fixture.insertDocument(
-        createTestDoc('title', 'body', 'TEST_A'),
-      );
-
-      await documentService.delete(TEST_INDEX_NAME, doc.id);
-
-      const result = await fixture.findQuery(createQuery<TestDoc>());
-      expect(result.hits).toHaveLength(0);
-    });
-
-    it('deleteDocument() does not throw for non-existing document', async () => {
-      await expect(
-        documentService.delete(TEST_INDEX_NAME, 'non-existing-id'),
-      ).resolves.not.toThrow();
-    });
-
-    it('deleteDocument() throws for non-existing index', async () => {
-      await expect(
-        documentService.delete('non-existing-index', 'some-id'),
-      ).rejects.toThrow();
-    });
-
-    it('bulkDelete() deletes multiple documents', async () => {
-      const docA = await fixture.insertDocument(
-        createTestDoc('title', 'body', 'TEST_A'),
-      );
-      const docB = await fixture.insertDocument(
-        createTestDoc('title', 'body', 'TEST_B'),
-      );
-      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
-
-      const result = await documentService.bulkDelete(TEST_INDEX_NAME, [
-        docA.id,
-        docB.id,
-      ]);
-
-      expect(result.errors).toBe(false);
-      expect(result.items).toHaveLength(2);
-      const remaining = await fixture.findQuery(createQuery<TestDoc>());
-      expect(remaining.hits).toHaveLength(1);
-    });
-
-    it('bulkDelete() returns empty result for empty array', async () => {
-      const result = await documentService.bulkDelete(TEST_INDEX_NAME, []);
-      expect(result).toEqual({ errors: false, items: [] });
-    });
-  });
-
   describe('SortBuilder.score()', () => {
     it('sorts by _score', async () => {
       const firstDoc = await fixture.insertDocument(
@@ -756,121 +695,6 @@ describe('OpensearchQueryBuilder', () => {
     });
   });
 
-  describe('OpensearchDocumentService.getDocument()', () => {
-    it('retrieves a single document by ID', async () => {
-      const doc = await fixture.insertDocument(
-        createTestDoc('title', 'body', 'TEST_A'),
-      );
-
-      const result = await documentService.getOne<TestDoc>(
-        TEST_INDEX_NAME,
-        doc.id,
-      );
-
-      expect(result).not.toBeNull();
-      expect(result!.title).toBe('title');
-      expect(result!.body).toBe('body');
-      expect(result!.type).toBe('TEST_A');
-    });
-
-    it('returns null for non-existing document', async () => {
-      const result = await documentService.getOne<TestDoc>(
-        TEST_INDEX_NAME,
-        'non-existing-id',
-      );
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('OpensearchSearchService.count()', () => {
-    it('returns total document count', async () => {
-      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
-      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_B'));
-
-      const result = await searchService.count(TEST_INDEX_NAME);
-      expect(result).toBe(2);
-    });
-
-    it('returns count matching query', async () => {
-      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
-      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_B'));
-      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
-
-      const query = createQuery<TestDoc>().term('type', 'TEST_A').build();
-      const result = await searchService.count(TEST_INDEX_NAME, query);
-      expect(result).toBe(2);
-    });
-
-    it('returns 0 when no documents exist', async () => {
-      const result = await searchService.count(TEST_INDEX_NAME);
-      expect(result).toBe(0);
-    });
-  });
-
-  describe('OpensearchDocumentService.deleteByQuery()', () => {
-    it('deletes documents matching query', async () => {
-      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
-      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
-      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_B'));
-
-      const query = createQuery<TestDoc>().term('type', 'TEST_A').build();
-      const deleted = await documentService.deleteByQuery(
-        TEST_INDEX_NAME,
-        query,
-      );
-
-      expect(deleted).toBe(2);
-      const remaining = await fixture.findQuery(createQuery<TestDoc>());
-      expect(remaining.hits).toHaveLength(1);
-      expect(remaining.hits[0].source.type).toBe('TEST_B');
-    });
-  });
-
-  describe('OpensearchDocumentService.bulkCreate()', () => {
-    it('creates multiple documents', async () => {
-      const documents = [
-        createTestDoc('title1', 'body1', 'TEST_A'),
-        createTestDoc('title2', 'body2', 'TEST_B'),
-        createTestDoc('title3', 'body3', 'TEST_A'),
-      ];
-
-      const result = await documentService.bulkCreate(
-        TEST_INDEX_NAME,
-        documents,
-      );
-
-      expect(result.errors).toBe(false);
-      expect(result.items).toHaveLength(3);
-      const all = await fixture.findQuery(createQuery<TestDoc>());
-      expect(all.hits).toHaveLength(3);
-    });
-
-    it('returns empty result for empty array', async () => {
-      const result = await documentService.bulkCreate(TEST_INDEX_NAME, []);
-      expect(result).toEqual({ errors: false, items: [] });
-    });
-  });
-
-  describe('OpensearchIndexService.deleteIndex()', () => {
-    it('deletes an index', async () => {
-      const tempIndex = 'test-delete-index';
-      await indexService.create(tempIndex, {
-        mappings: { properties: { title: { type: 'text' } } },
-      });
-
-      await indexService.delete(tempIndex);
-
-      const exists = await client.indices.exists({ index: tempIndex });
-      expect(exists.body).toBe(false);
-    });
-
-    it('does not throw for non-existing index', async () => {
-      await expect(
-        indexService.delete('non-existing-index'),
-      ).resolves.not.toThrow();
-    });
-  });
-
   describe('SearchResponse.total', () => {
     it('returns total hit count', async () => {
       await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
@@ -891,6 +715,271 @@ describe('OpensearchQueryBuilder', () => {
 
       expect(result.total).toBe(0);
       expect(result.isEmpty).toBe(true);
+    });
+  });
+
+  it('exists query', async () => {
+    await fixture.insertDocument(
+      createTestDoc('title', 'body', 'TEST_A', new Date('2025-01-01')),
+    );
+    await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_B'));
+
+    const result = await fixture.findQuery(
+      createQuery<TestDoc>().exists('createdAt'),
+    );
+
+    expect(result.hits).toHaveLength(2);
+  });
+
+  it('from() offset pagination', async () => {
+    await fixture.insertDocument(createTestDoc('titleA', 'body', 'TEST_A'));
+    await fixture.insertDocument(createTestDoc('titleB', 'body', 'TEST_B'));
+    await fixture.insertDocument(createTestDoc('titleC', 'body', 'TEST_A'));
+
+    const result = await fixture.findQuery(
+      createQuery<TestDoc>()
+        .sort((sort) => {
+          sort.field('type', 'asc');
+        })
+        .from(1)
+        .size(1),
+    );
+
+    expect(result.hits).toHaveLength(1);
+    expect(result.total).toBe(3);
+  });
+
+  it('source() controls returned fields', async () => {
+    await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
+
+    const result = await fixture.findQuery(
+      createQuery<TestDoc>()
+        .match('title', 'title')
+        .source(['title', 'type']),
+    );
+
+    expect(result.hits).toHaveLength(1);
+    expect(result.hits[0].source.title).toBe('title');
+    expect(result.hits[0].source.type).toBe('TEST_A');
+  });
+
+  it('source(false) excludes _source', async () => {
+    await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
+
+    const result = await fixture.findQuery(
+      createQuery<TestDoc>().match('title', 'title').source(false),
+    );
+
+    expect(result.hits).toHaveLength(1);
+    expect(result.hits[0].source).toBeUndefined();
+  });
+
+  it('setQuery() sets raw query', async () => {
+    await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
+    await fixture.insertDocument(createTestDoc('other', 'body', 'TEST_B'));
+
+    const result = await fixture.findQuery(
+      createQuery<TestDoc>().setQuery({ match: { title: 'title' } }),
+    );
+
+    expect(result.hits).toHaveLength(1);
+    expect(result.hits[0].source.title).toBe('title');
+  });
+
+  it('sortBy() shorthand sort', async () => {
+    await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
+    await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_B'));
+
+    const result = await fixture.findQuery(
+      createQuery<TestDoc>().match('title', 'title').sortBy('type', 'asc'),
+    );
+
+    expect(result.hits).toHaveLength(2);
+    expect(result.hits[0].source.type).toBe('TEST_A');
+    expect(result.hits[1].source.type).toBe('TEST_B');
+  });
+
+  describe('bool must / mustNot', () => {
+    it('must query', async () => {
+      await fixture.insertDocument(
+        createTestDoc('title', 'body', 'TEST_A'),
+      );
+      await fixture.insertDocument(
+        createTestDoc('other', 'body', 'TEST_B'),
+      );
+
+      const result = await fixture.findQuery(
+        createQuery<TestDoc>().bool((bool) => {
+          bool.must((must) => {
+            must.match('title', 'title');
+          });
+        }),
+      );
+
+      expect(result.hits).toHaveLength(1);
+      expect(result.hits[0].source.title).toBe('title');
+    });
+
+    it('mustNot query', async () => {
+      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
+      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_B'));
+
+      const result = await fixture.findQuery(
+        createQuery<TestDoc>().bool((bool) => {
+          bool.mustNot((mustNot) => {
+            mustNot.term('type', 'TEST_A');
+          });
+        }),
+      );
+
+      expect(result.hits).toHaveLength(1);
+      expect(result.hits[0].source.type).toBe('TEST_B');
+    });
+
+    it('must + mustNot combined', async () => {
+      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
+      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_B'));
+      await fixture.insertDocument(createTestDoc('other', 'body', 'TEST_A'));
+
+      const result = await fixture.findQuery(
+        createQuery<TestDoc>().bool((bool) => {
+          bool
+            .must((must) => {
+              must.match('title', 'title');
+            })
+            .mustNot((mustNot) => {
+              mustNot.term('type', 'TEST_B');
+            });
+        }),
+      );
+
+      expect(result.hits).toHaveLength(1);
+      expect(result.hits[0].source.type).toBe('TEST_A');
+    });
+  });
+
+  describe('minimumShouldMatch()', () => {
+    it('requires minimum number of should clauses to match', async () => {
+      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
+      await fixture.insertDocument(createTestDoc('other', 'body', 'TEST_A'));
+
+      const result = await fixture.findQuery(
+        createQuery<TestDoc>().bool((bool) => {
+          bool
+            .should((should) => {
+              should.match('title', 'title').term('type', 'TEST_A');
+            })
+            .minimumShouldMatch(2);
+        }),
+      );
+
+      expect(result.hits).toHaveLength(1);
+      expect(result.hits[0].source.title).toBe('title');
+    });
+  });
+
+  describe('nested bool in QueryCollectionBuilder', () => {
+    it('supports nested bool query within filter', async () => {
+      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
+      await fixture.insertDocument(createTestDoc('other', 'body', 'TEST_B'));
+      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_B'));
+
+      const result = await fixture.findQuery(
+        createQuery<TestDoc>().bool((bool) => {
+          bool.filter((filter) => {
+            filter.bool((nestedBool) => {
+              nestedBool
+                .must((must) => {
+                  must.match('title', 'title');
+                })
+                .filter((f) => {
+                  f.term('type', 'TEST_A');
+                });
+            });
+          });
+        }),
+      );
+
+      expect(result.hits).toHaveLength(1);
+      expect(result.hits[0].source.type).toBe('TEST_A');
+    });
+  });
+
+  describe('QueryCollectionBuilder query methods', () => {
+    it('range within filter', async () => {
+      await fixture.insertDocument(
+        createTestDoc('title', 'body', 'TEST_A', new Date('2025-01-01')),
+      );
+      await fixture.insertDocument(
+        createTestDoc('title', 'body', 'TEST_B', new Date('2025-06-01')),
+      );
+
+      const result = await fixture.findQuery(
+        createQuery<TestDoc>().bool((bool) => {
+          bool.filter((filter) => {
+            filter.range('createdAt', {
+              gte: '2025-03-01',
+              lte: '2025-12-31',
+            });
+          });
+        }),
+      );
+
+      expect(result.hits).toHaveLength(1);
+      expect(result.hits[0].source.type).toBe('TEST_B');
+    });
+
+    it('exists within filter', async () => {
+      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
+      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_B'));
+
+      const result = await fixture.findQuery(
+        createQuery<TestDoc>().bool((bool) => {
+          bool.filter((filter) => {
+            filter.exists('type');
+          });
+        }),
+      );
+
+      expect(result.hits).toHaveLength(2);
+    });
+
+    it('wildcard within should', async () => {
+      await fixture.insertDocument(
+        createTestDoc('hello world', 'body', 'TEST_A'),
+      );
+      await fixture.insertDocument(createTestDoc('zzz', 'body', 'TEST_B'));
+
+      const result = await fixture.findQuery(
+        createQuery<TestDoc>().bool((bool) => {
+          bool.should((should) => {
+            should.wildcard('title', 'hello*');
+          });
+        }),
+      );
+
+      expect(result.hits).toHaveLength(1);
+      expect(result.hits[0].source.title).toBe('hello world');
+    });
+  });
+
+  describe('multiMatch with type parameter', () => {
+    it('supports phrase type', async () => {
+      await fixture.insertDocument(
+        createTestDoc('hello world', 'plain body', 'TEST_A'),
+      );
+      await fixture.insertDocument(
+        createTestDoc('world hello', 'plain body', 'TEST_B'),
+      );
+
+      const result = await fixture.findQuery(
+        createQuery<TestDoc>().multiMatch('hello world', [
+          { field: 'title' },
+        ], 'phrase'),
+      );
+
+      expect(result.hits).toHaveLength(1);
+      expect(result.hits[0].source.title).toBe('hello world');
     });
   });
 
