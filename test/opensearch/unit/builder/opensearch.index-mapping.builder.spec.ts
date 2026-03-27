@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createIndexMapping } from '../../../src/index.js';
+import { createIndexMapping } from '../../../../src/index.js';
 
 describe('IndexMappingBuilder', () => {
   it('builds a basic mapping with text and keyword fields', () => {

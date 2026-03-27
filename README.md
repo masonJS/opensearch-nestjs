@@ -288,7 +288,7 @@ createQuery<T>()
   });
 ```
 
-`when`, `whenElse`, and `each` are available on `OpenSearchQueryBuilder`, `BoolQueryBuilder`, and `QueryCollectionBuilder`.
+`when`, `whenElse`, and `each` are available on `OpensearchQueryBuilder`, `BoolQueryBuilder`, and `QueryCollectionBuilder`.
 
 ### Search Response
 

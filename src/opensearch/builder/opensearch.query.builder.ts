@@ -13,24 +13,24 @@ import {
   Range,
   SearchAfter,
   TermValue,
-} from './opensearch.type.js';
+} from '../type/opensearch.type.js';
 
-export class OpenSearchQueryBuilder<T extends IndexDocument> {
+export class OpensearchQueryBuilder<T extends IndexDocument> {
   private query: OpenSearchQuery = {};
 
-  size(size: number): OpenSearchQueryBuilder<T> {
+  size(size: number): OpensearchQueryBuilder<T> {
     this.query.size = size;
     return this;
   }
 
-  from(from: number): OpenSearchQueryBuilder<T> {
+  from(from: number): OpensearchQueryBuilder<T> {
     this.query.from = from;
     return this;
   }
 
   bool(
     builder: (boolBuilder: BoolQueryBuilder<T>) => void,
-  ): OpenSearchQueryBuilder<T> {
+  ): OpensearchQueryBuilder<T> {
     const boolBuilder = new BoolQueryBuilder<T>();
     builder(boolBuilder);
     this.query.query = { bool: boolBuilder.build() };
@@ -39,7 +39,7 @@ export class OpenSearchQueryBuilder<T extends IndexDocument> {
 
   sort(
     builder: (sortBuilder: SortBuilder<T>) => void,
-  ): OpenSearchQueryBuilder<T> {
+  ): OpensearchQueryBuilder<T> {
     const sortBuilder = new SortBuilder<T>();
     builder(sortBuilder);
     this.query.sort = sortBuilder.build();
@@ -49,14 +49,14 @@ export class OpenSearchQueryBuilder<T extends IndexDocument> {
   sortBy<K extends keyof T>(
     field: K,
     order: 'asc' | 'desc' = 'desc',
-  ): OpenSearchQueryBuilder<T> {
+  ): OpensearchQueryBuilder<T> {
     this.query.sort = [{ [field as string]: { order } }];
     return this;
   }
 
   highlight(
     builder: (highlightBuilder: HighlightBuilder<T>) => void,
-  ): OpenSearchQueryBuilder<T> {
+  ): OpensearchQueryBuilder<T> {
     const highlightBuilder = new HighlightBuilder<T>();
     builder(highlightBuilder);
     this.query.highlight = highlightBuilder.build();
@@ -67,19 +67,19 @@ export class OpenSearchQueryBuilder<T extends IndexDocument> {
     field: K,
     value: TermValue,
     boost?: number,
-  ): OpenSearchQueryBuilder<T>;
+  ): OpensearchQueryBuilder<T>;
 
   term<P extends FlattenedKeys<T>>(
     field: P,
     value: TermValue,
     boost?: number,
-  ): OpenSearchQueryBuilder<T>;
+  ): OpensearchQueryBuilder<T>;
 
   term(
     field: string,
     value: TermValue,
     boost?: number,
-  ): OpenSearchQueryBuilder<T> {
+  ): OpensearchQueryBuilder<T> {
     if (!this.query.query) {
       this.query.query = {};
     }
@@ -93,19 +93,19 @@ export class OpenSearchQueryBuilder<T extends IndexDocument> {
     field: K,
     value: string,
     boost?: number,
-  ): OpenSearchQueryBuilder<T>;
+  ): OpensearchQueryBuilder<T>;
 
   wildcard<P extends FlattenedKeys<T>>(
     field: P,
     value: string,
     boost?: number,
-  ): OpenSearchQueryBuilder<T>;
+  ): OpensearchQueryBuilder<T>;
 
   wildcard(
     field: string,
     value: string,
     boost?: number,
-  ): OpenSearchQueryBuilder<T> {
+  ): OpensearchQueryBuilder<T> {
     if (!this.query.query) {
       this.query.query = {};
     }
@@ -119,19 +119,19 @@ export class OpenSearchQueryBuilder<T extends IndexDocument> {
     field: K,
     query: string,
     boost?: number,
-  ): OpenSearchQueryBuilder<T>;
+  ): OpensearchQueryBuilder<T>;
 
   match<P extends FlattenedKeys<T>>(
     field: P,
     query: string,
     boost?: number,
-  ): OpenSearchQueryBuilder<T>;
+  ): OpensearchQueryBuilder<T>;
 
   match(
     field: string,
     query: string,
     boost?: number,
-  ): OpenSearchQueryBuilder<T> {
+  ): OpensearchQueryBuilder<T> {
     if (!this.query.query) {
       this.query.query = {};
     }
@@ -144,14 +144,14 @@ export class OpenSearchQueryBuilder<T extends IndexDocument> {
     return this;
   }
 
-  range<K extends keyof T>(field: K, range: Range): OpenSearchQueryBuilder<T>;
+  range<K extends keyof T>(field: K, range: Range): OpensearchQueryBuilder<T>;
 
   range<P extends FlattenedKeys<T>>(
     field: P,
     range: Range,
-  ): OpenSearchQueryBuilder<T>;
+  ): OpensearchQueryBuilder<T>;
 
-  range(field: string, range: Range): OpenSearchQueryBuilder<T> {
+  range(field: string, range: Range): OpensearchQueryBuilder<T> {
     if (!this.query.query) {
       this.query.query = {};
     }
@@ -159,11 +159,11 @@ export class OpenSearchQueryBuilder<T extends IndexDocument> {
     return this;
   }
 
-  exists<K extends keyof T>(field: K): OpenSearchQueryBuilder<T>;
+  exists<K extends keyof T>(field: K): OpensearchQueryBuilder<T>;
 
-  exists<P extends FlattenedKeys<T>>(field: P): OpenSearchQueryBuilder<T>;
+  exists<P extends FlattenedKeys<T>>(field: P): OpensearchQueryBuilder<T>;
 
-  exists(field: string): OpenSearchQueryBuilder<T> {
+  exists(field: string): OpensearchQueryBuilder<T> {
     if (!this.query.query) {
       this.query.query = {};
     }
@@ -171,7 +171,7 @@ export class OpenSearchQueryBuilder<T extends IndexDocument> {
     return this;
   }
 
-  lastId(lastId: SearchAfter): OpenSearchQueryBuilder<T> {
+  lastId(lastId: SearchAfter): OpensearchQueryBuilder<T> {
     this.query.search_after = lastId;
     return this;
   }
@@ -192,7 +192,7 @@ export class OpenSearchQueryBuilder<T extends IndexDocument> {
     query: string,
     fields: MultiMatchField<T>[],
     type: MultiMatchType = 'best_fields',
-  ): OpenSearchQueryBuilder<T> {
+  ): OpensearchQueryBuilder<T> {
     const fieldsWithBoost = fields.map(({ field, boost }) =>
       boost !== undefined ? `${String(field)}^${boost}` : String(field),
     );
@@ -216,7 +216,7 @@ export class OpenSearchQueryBuilder<T extends IndexDocument> {
     return this;
   }
 
-  source(fields?: (keyof T)[] | boolean): OpenSearchQueryBuilder<T> {
+  source(fields?: (keyof T)[] | boolean): OpensearchQueryBuilder<T> {
     this.query._source = fields as string[] | boolean;
     return this;
   }
@@ -261,7 +261,7 @@ export class OpenSearchQueryBuilder<T extends IndexDocument> {
     return this.query;
   }
 
-  setQuery(query: any): OpenSearchQueryBuilder<T> {
+  setQuery(query: any): OpensearchQueryBuilder<T> {
     this.query.query = query;
     return this;
   }
@@ -606,4 +606,4 @@ export class HighlightBuilder<T extends IndexDocument> {
 }
 
 export const createQuery = <T extends IndexDocument>() =>
-  new OpenSearchQueryBuilder<T>();
+  new OpensearchQueryBuilder<T>();
