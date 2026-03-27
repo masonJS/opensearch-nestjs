@@ -105,49 +105,49 @@ export class ArticleSearchService {
 
 ### Module
 
-| Method | Description |
-|--------|-------------|
-| `OpensearchModule.forRoot(options)` | Register with static options |
-| `OpensearchModule.forRootAsync(options)` | Register with async factory |
+| Method                                   | Description                  |
+| ---------------------------------------- | ---------------------------- |
+| `OpensearchModule.forRoot(options)`      | Register with static options |
+| `OpensearchModule.forRootAsync(options)` | Register with async factory  |
 
 Both methods export `OpensearchSearchService`, `OpensearchDocumentService`, `OpensearchIndexService`, and the OpenSearch `Client`.
 
 ### OpensearchSearchService
 
-| Method | Description |
-|--------|-------------|
+| Method                    | Description                                                |
+| ------------------------- | ---------------------------------------------------------- |
 | `search<T>(index, query)` | Search documents. Accepts single index or array of indices |
-| `count(index, query?)` | Count documents, optionally filtered by query |
+| `count(index, query?)`    | Count documents, optionally filtered by query              |
 
 ### OpensearchDocumentService
 
 #### CRUD
 
-| Method | Description |
-|--------|-------------|
-| `create<T>(index, body)` | Index a new document |
-| `getOne<T>(index, id)` | Get document by ID, returns `null` if not found |
-| `update<T>(index, id, doc)` | Partial update |
-| `upsert<T>(index, id, doc)` | Update or insert (`doc_as_upsert`) |
-| `delete(index, id)` | Delete by ID (no-op if not found) |
+| Method                      | Description                                     |
+| --------------------------- | ----------------------------------------------- |
+| `create<T>(index, body)`    | Index a new document                            |
+| `getOne<T>(index, id)`      | Get document by ID, returns `null` if not found |
+| `update<T>(index, id, doc)` | Partial update                                  |
+| `upsert<T>(index, id, doc)` | Update or insert (`doc_as_upsert`)              |
+| `delete(index, id)`         | Delete by ID (no-op if not found)               |
 
 #### Bulk Operations
 
-| Method | Description |
-|--------|-------------|
-| `bulkCreate<T>(index, documents)` | Bulk index documents |
-| `bulkUpdate<T>(index, updates)` | Bulk partial updates |
-| `bulkUpsert<T>(index, upserts)` | Bulk upsert |
-| `bulkDelete(index, ids)` | Bulk delete by IDs |
-| `deleteByQuery(index, query)` | Delete documents matching query |
+| Method                            | Description                     |
+| --------------------------------- | ------------------------------- |
+| `bulkCreate<T>(index, documents)` | Bulk index documents            |
+| `bulkUpdate<T>(index, updates)`   | Bulk partial updates            |
+| `bulkUpsert<T>(index, upserts)`   | Bulk upsert                     |
+| `bulkDelete(index, ids)`          | Bulk delete by IDs              |
+| `deleteByQuery(index, query)`     | Delete documents matching query |
 
 ### OpensearchIndexService
 
-| Method | Description |
-|--------|-------------|
-| `create(index, body)` | Create index (skips if already exists) |
-| `delete(index)` | Delete index (no-op if not found) |
-| `putMapping(index, properties)` | Update index mapping |
+| Method                          | Description                            |
+| ------------------------------- | -------------------------------------- |
+| `create(index, body)`           | Create index (skips if already exists) |
+| `delete(index)`                 | Delete index (no-op if not found)      |
+| `putMapping(index, properties)` | Update index mapping                   |
 
 ### Query Builder
 
@@ -163,7 +163,9 @@ const query = createQuery<MyDocument>()
         must.match('title', 'hello').match('body', 'world');
       })
       .filter((filter) => {
-        filter.term('status', 'published').range('createdAt', { gte: '2025-01-01' });
+        filter
+          .term('status', 'published')
+          .range('createdAt', { gte: '2025-01-01' });
       })
       .should((should) => {
         should.term('featured', true);
@@ -179,16 +181,16 @@ const query = createQuery<MyDocument>()
 
 #### Query Methods
 
-| Method | Description |
-|--------|-------------|
-| `term(field, value, boost?)` | Exact match on keyword field |
-| `match(field, query, boost?)` | Full-text search |
-| `wildcard(field, pattern, boost?)` | Wildcard pattern match |
-| `range(field, range)` | Range query (`gte`, `lte`, `gt`, `lt`, `format`, `time_zone`, `boost`) |
-| `exists(field)` | Field existence check |
-| `multiMatch(query, fields, type?)` | Multi-field full-text search |
-| `bool(builder)` | Bool query (`must`, `should`, `filter`, `mustNot`) |
-| `setQuery(query)` | Set a raw query object directly |
+| Method                             | Description                                                            |
+| ---------------------------------- | ---------------------------------------------------------------------- |
+| `term(field, value, boost?)`       | Exact match on keyword field                                           |
+| `match(field, query, boost?)`      | Full-text search                                                       |
+| `wildcard(field, pattern, boost?)` | Wildcard pattern match                                                 |
+| `range(field, range)`              | Range query (`gte`, `lte`, `gt`, `lt`, `format`, `time_zone`, `boost`) |
+| `exists(field)`                    | Field existence check                                                  |
+| `multiMatch(query, fields, type?)` | Multi-field full-text search                                           |
+| `bool(builder)`                    | Bool query (`must`, `should`, `filter`, `mustNot`)                     |
+| `setQuery(query)`                  | Set a raw query object directly                                        |
 
 All field parameters accept both `keyof T` and nested dot-notation paths via `FlattenedKeys<T>`.
 
@@ -196,10 +198,10 @@ All field parameters accept both `keyof T` and nested dot-notation paths via `Fl
 
 Within `must`, `should`, `filter`, and `mustNot` callbacks, additional methods are available:
 
-| Method | Description |
-|--------|-------------|
+| Method               | Description              |
+| -------------------- | ------------------------ |
 | `query(customQuery)` | Add a raw `Query` object |
-| `bool(builder)` | Nested bool query |
+| `bool(builder)`      | Nested bool query        |
 
 #### Sorting
 
@@ -228,9 +230,9 @@ const nextQuery = createQuery<T>()
   .build();
 ```
 
-| Method | Input | Description |
-|--------|-------|-------------|
-| `.lastId(searchAfter)` | `SearchAfter` (array) | Pass sort values directly |
+| Method                      | Input                         | Description                       |
+| --------------------------- | ----------------------------- | --------------------------------- |
+| `.lastId(searchAfter)`      | `SearchAfter` (array)         | Pass sort values directly         |
 | `.lastIdFromCursor(cursor)` | `string \| undefined \| null` | Parse from `result.cursor` string |
 
 #### Highlight
@@ -251,12 +253,12 @@ createQuery<T>()
   });
 ```
 
-| Method | Description |
-|--------|-------------|
-| `field(name, options?)` | Add a single highlight field |
-| `fields(entries)` | Add multiple highlight fields at once |
-| `tags(preTags, postTags)` | Set highlight tags |
-| `highlightQuery(query)` | Set a separate query for highlighting |
+| Method                    | Description                           |
+| ------------------------- | ------------------------------------- |
+| `field(name, options?)`   | Add a single highlight field          |
+| `fields(entries)`         | Add multiple highlight fields at once |
+| `tags(preTags, postTags)` | Set highlight tags                    |
+| `highlightQuery(query)`   | Set a separate query for highlighting |
 
 #### Source Filtering
 
@@ -295,22 +297,22 @@ createQuery<T>()
 ```typescript
 const result = await searchService.search<Article>('articles', query);
 
-result.total;     // Total number of matching documents
-result.hits;      // Array of SearchHitResponse<T>
-result.isEmpty;   // true if no results
-result.cursor;    // Cursor string for next page (search_after)
+result.total; // Total number of matching documents
+result.hits; // Array of SearchHitResponse<T>
+result.isEmpty; // true if no results
+result.cursor; // Cursor string for next page (search_after)
 
 // Each hit
-result.hits[0].id;       // Document ID
-result.hits[0].source;   // Document body (typed as T)
-result.hits[0].score;    // Relevance score
-result.hits[0].sort;     // Sort values (SearchAfter)
-result.hits[0].index;    // Index name
+result.hits[0].id; // Document ID
+result.hits[0].source; // Document body (typed as T)
+result.hits[0].score; // Relevance score
+result.hits[0].sort; // Sort values (SearchAfter)
+result.hits[0].index; // Index name
 
 // Highlight utilities
-result.hits[0].getHighlight('title');          // string[] | undefined
-result.hits[0].getHighlightFirst('title');     // First highlight fragment
-result.hits[0].getHighlightSentence('title');  // Sentence containing <mark> tag
+result.hits[0].getHighlight('title'); // string[] | undefined
+result.hits[0].getHighlightFirst('title'); // First highlight fragment
+result.hits[0].getHighlightSentence('title'); // Sentence containing <mark> tag
 ```
 
 ### Index Mapping Builder
@@ -337,19 +339,19 @@ await indexService.create('articles', articleMapping);
 
 #### Field Methods
 
-| Method | Description |
-|--------|-------------|
-| `text(field, options?)` | Text field. Options: `keyword`, `index`, `ignoreAbove`, `analyzer`, `searchAnalyzer` |
-| `keyword(field)` | Keyword field |
-| `date(field)` | Date field |
-| `boolean(field)` | Boolean field |
-| `integer(field)` | Integer field |
-| `long(field)` | Long field |
-| `float(field)` | Float field |
-| `double(field)` | Double field |
-| `nested(field, builder)` | Nested object with sub-fields |
-| `object(field, builder)` | Object with sub-fields |
-| `custom(field, mapping)` | Raw mapping for any type (e.g. `geo_point`) |
+| Method                   | Description                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------ |
+| `text(field, options?)`  | Text field. Options: `keyword`, `index`, `ignoreAbove`, `analyzer`, `searchAnalyzer` |
+| `keyword(field)`         | Keyword field                                                                        |
+| `date(field)`            | Date field                                                                           |
+| `boolean(field)`         | Boolean field                                                                        |
+| `integer(field)`         | Integer field                                                                        |
+| `long(field)`            | Long field                                                                           |
+| `float(field)`           | Float field                                                                          |
+| `double(field)`          | Double field                                                                         |
+| `nested(field, builder)` | Nested object with sub-fields                                                        |
+| `object(field, builder)` | Object with sub-fields                                                               |
+| `custom(field, mapping)` | Raw mapping for any type (e.g. `geo_point`)                                          |
 
 #### Nested / Object Fields
 

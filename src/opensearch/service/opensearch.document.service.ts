@@ -6,10 +6,7 @@ import { OpenSearchQuery } from '../type/opensearch.type.js';
 export class OpensearchDocumentService {
   constructor(private readonly client: Client) {}
 
-  async create<T extends object>(
-    index: string,
-    body: T,
-  ): Promise<void> {
+  async create<T extends object>(index: string, body: T): Promise<void> {
     await this.client.index({
       index,
       body,
