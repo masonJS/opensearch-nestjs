@@ -504,29 +504,31 @@ describe('OpensearchQueryBuilder', () => {
   describe('lastIdFromCursor()', () => {
     it('sets search_after from valid cursor', async () => {
       const firstDoc = await fixture.insertDocument(
-        createTestDoc('a title', 'body', 'TEST_A'),
+        createTestDoc('a title', 'body', 'TEST_A', new Date('2025-01-01')),
       );
-      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_B'));
+      await fixture.insertDocument(
+        createTestDoc('title', 'body', 'TEST_B', new Date('2025-01-02')),
+      );
 
-      const searchRes = await fixture.findQuery(
+      const firstPage = await fixture.findQuery(
         createQuery<TestDoc>()
           .sort((sort) => {
-            sort.field('_id', 'desc');
+            sort.field('createdAt', 'desc');
           })
           .size(1),
       );
 
-      const result = await fixture.findQuery(
+      const secondPage = await fixture.findQuery(
         createQuery<TestDoc>()
           .sort((sort) => {
-            sort.field('_id', 'desc');
+            sort.field('createdAt', 'desc');
           })
-          .lastIdFromCursor(searchRes.cursor)
+          .lastIdFromCursor(firstPage.cursor)
           .size(1),
       );
 
-      expect(result.hits).toHaveLength(1);
-      expect(result.hits[0].id).toBe(firstDoc.id);
+      expect(secondPage.hits).toHaveLength(1);
+      expect(secondPage.hits[0].id).toBe(firstDoc.id);
     });
 
     it('no-op for null cursor', async () => {
