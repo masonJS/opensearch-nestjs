@@ -13,7 +13,7 @@ import {
   Range,
   SearchAfter,
   TermValue,
-} from './opensearch.type.js';
+} from '../type/opensearch.type.js';
 
 export class OpenSearchQueryBuilder<T extends IndexDocument> {
   private query: OpenSearchQuery = {};

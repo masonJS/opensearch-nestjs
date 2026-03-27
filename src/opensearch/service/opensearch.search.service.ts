@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Client } from '@opensearch-project/opensearch';
-import { OpenSearchQuery } from './opensearch.type.js';
-import { SearchResponse } from './opensearch.response.type.js';
+import { OpenSearchQuery } from '../type/opensearch.type.js';
+import { SearchResponse } from '../type/opensearch.response.type.js';
 
 @Injectable()
 export class OpensearchSearchService {
