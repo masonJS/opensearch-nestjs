@@ -41,5 +41,4 @@ export class OpensearchSearchService {
     });
     return response.body.count;
   }
-
 }

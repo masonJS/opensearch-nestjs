@@ -93,9 +93,7 @@ describe('OpensearchQueryBuilder', () => {
   });
 
   it('wildcard query', async () => {
-    await fixture.insertDocument(
-      createTestDoc('A title A ', 'body', 'TEST_A'),
-    );
+    await fixture.insertDocument(createTestDoc('A title A ', 'body', 'TEST_A'));
     await fixture.insertDocument(createTestDoc('title B', 'body', 'TEST_B'));
 
     const result = await fixture.findQuery(
@@ -621,35 +619,7 @@ describe('OpensearchQueryBuilder', () => {
 
   describe('HighlightBuilder.fields()', () => {
     it('sets multiple highlight fields in batch', async () => {
-      await fixture.insertDocument(
-        createTestDoc('titleA', 'bodyA', 'TEST_A'),
-      );
-
-      const result = await fixture.findQuery(
-        createQuery<TestDoc>()
-          .bool((bool) => {
-            bool.should((should) => {
-              should.match('title', 'titleA');
-            });
-          })
-          .highlight((highlight) => {
-            highlight.tags(['<mark>'], ['</mark>']).fields([
-              { name: 'title' },
-              { name: 'body', fragmentSize: 150, numberOfFragments: 3 },
-            ]);
-          }),
-      );
-
-      expect(result.hits).toHaveLength(1);
-      expect(result.hits[0].getHighlightSentence('title')).toMatchInlineSnapshot(
-        `"<mark>titleA</mark>"`,
-      );
-    });
-
-    it('no-op for empty array', async () => {
-      await fixture.insertDocument(
-        createTestDoc('titleA', 'bodyA', 'TEST_A'),
-      );
+      await fixture.insertDocument(createTestDoc('titleA', 'bodyA', 'TEST_A'));
 
       const result = await fixture.findQuery(
         createQuery<TestDoc>()
@@ -661,15 +631,38 @@ describe('OpensearchQueryBuilder', () => {
           .highlight((highlight) => {
             highlight
               .tags(['<mark>'], ['</mark>'])
-              .field('title')
-              .fields([]);
+              .fields([
+                { name: 'title' },
+                { name: 'body', fragmentSize: 150, numberOfFragments: 3 },
+              ]);
           }),
       );
 
       expect(result.hits).toHaveLength(1);
-      expect(result.hits[0].getHighlightSentence('title')).toMatchInlineSnapshot(
-        `"<mark>titleA</mark>"`,
+      expect(
+        result.hits[0].getHighlightSentence('title'),
+      ).toMatchInlineSnapshot(`"<mark>titleA</mark>"`);
+    });
+
+    it('no-op for empty array', async () => {
+      await fixture.insertDocument(createTestDoc('titleA', 'bodyA', 'TEST_A'));
+
+      const result = await fixture.findQuery(
+        createQuery<TestDoc>()
+          .bool((bool) => {
+            bool.should((should) => {
+              should.match('title', 'titleA');
+            });
+          })
+          .highlight((highlight) => {
+            highlight.tags(['<mark>'], ['</mark>']).field('title').fields([]);
+          }),
       );
+
+      expect(result.hits).toHaveLength(1);
+      expect(
+        result.hits[0].getHighlightSentence('title'),
+      ).toMatchInlineSnapshot(`"<mark>titleA</mark>"`);
     });
   });
 
@@ -992,9 +985,7 @@ describe('OpensearchQueryBuilder', () => {
 
   describe('SearchHitResponse highlight methods', () => {
     it('getHighlight(field) returns highlight array', async () => {
-      await fixture.insertDocument(
-        createTestDoc('titleA', 'bodyA', 'TEST_A'),
-      );
+      await fixture.insertDocument(createTestDoc('titleA', 'bodyA', 'TEST_A'));
 
       const result = await fixture.findQuery(
         createQuery<TestDoc>()
@@ -1016,9 +1007,7 @@ describe('OpensearchQueryBuilder', () => {
     });
 
     it('getHighlightFirst(field) returns first highlight', async () => {
-      await fixture.insertDocument(
-        createTestDoc('titleA', 'bodyA', 'TEST_A'),
-      );
+      await fixture.insertDocument(createTestDoc('titleA', 'bodyA', 'TEST_A'));
 
       const result = await fixture.findQuery(
         createQuery<TestDoc>()

@@ -36,7 +36,9 @@ describe('Query DSL type conformance', () => {
     });
 
     it('term with boost conforms to TermQuery', () => {
-      const result = createQuery<Article>().term('category', 'tech', 2.0).build();
+      const result = createQuery<Article>()
+        .term('category', 'tech', 2.0)
+        .build();
 
       const field = result.query!.term!['category'];
       expect(field).toEqual({ value: 'tech', boost: 2.0 });
@@ -45,7 +47,9 @@ describe('Query DSL type conformance', () => {
     });
 
     it('term supports string, number, boolean values', () => {
-      const stringQuery = createQuery<Article>().term('category', 'tech').build();
+      const stringQuery = createQuery<Article>()
+        .term('category', 'tech')
+        .build();
       expect(stringQuery.query!.term!['category'].value).toBe('tech');
 
       const numberQuery = createQuery<Article>().term('viewCount', 100).build();
@@ -60,7 +64,9 @@ describe('Query DSL type conformance', () => {
 
   describe('MatchQuery', () => {
     it('builder output conforms to MatchQuery structure', () => {
-      const result = createQuery<Article>().match('body', 'hello world').build();
+      const result = createQuery<Article>()
+        .match('body', 'hello world')
+        .build();
 
       const matchQuery = result.query!.match!;
       const field: Record<string, MatchQuery> = matchQuery;
@@ -151,10 +157,7 @@ describe('Query DSL type conformance', () => {
   describe('MultiMatchQuery', () => {
     it('builder output conforms to MultiMatchQuery structure', () => {
       const result = createQuery<Article>()
-        .multiMatch('hello', [
-          { field: 'title', boost: 2 },
-          { field: 'body' },
-        ])
+        .multiMatch('hello', [{ field: 'title', boost: 2 }, { field: 'body' }])
         .build();
 
       const multiMatch: MultiMatchQuery = result.query!.multi_match!;
@@ -165,11 +168,7 @@ describe('Query DSL type conformance', () => {
 
     it('multiMatch with explicit type conforms to MultiMatchQuery', () => {
       const result = createQuery<Article>()
-        .multiMatch(
-          'hello',
-          [{ field: 'title' }, { field: 'body' }],
-          'phrase',
-        )
+        .multiMatch('hello', [{ field: 'title' }, { field: 'body' }], 'phrase')
         .build();
 
       const multiMatch = result.query!.multi_match!;
@@ -257,7 +256,9 @@ describe('Query DSL type conformance', () => {
               must.match('body', 'hello');
             })
             .filter((filter) => {
-              filter.term('isPublished', true).range('createdAt', { gte: '2025-01-01' });
+              filter
+                .term('isPublished', true)
+                .range('createdAt', { gte: '2025-01-01' });
             })
             .should((should) => {
               should.term('category', 'tech');
@@ -288,9 +289,7 @@ describe('Query DSL type conformance', () => {
           bool.must((must) => {
             must.bool((innerBool) => {
               innerBool.should((should) => {
-                should
-                  .match('title.exact', 'hello')
-                  .match('body', 'hello');
+                should.match('title.exact', 'hello').match('body', 'hello');
               });
             });
           });
@@ -392,18 +391,14 @@ describe('Query DSL type conformance', () => {
     });
 
     it('search_after conforms to SearchAfter type', () => {
-      const result = createQuery<Article>()
-        .lastId([1.5, 'doc-123'])
-        .build();
+      const result = createQuery<Article>().lastId([1.5, 'doc-123']).build();
 
       expect(result.search_after).toEqual([1.5, 'doc-123']);
     });
 
     it('lastIdFromCursor parses cursor into SearchAfter', () => {
       const cursor = JSON.stringify([1.5, 'doc-123']);
-      const result = createQuery<Article>()
-        .lastIdFromCursor(cursor)
-        .build();
+      const result = createQuery<Article>().lastIdFromCursor(cursor).build();
 
       expect(result.search_after).toEqual([1.5, 'doc-123']);
     });

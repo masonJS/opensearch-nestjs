@@ -17,10 +17,7 @@ export class OpensearchDocumentService {
    * @param index - Target index name
    * @param body - Document to index
    */
-  async create<T extends object>(
-    index: string,
-    body: T,
-  ): Promise<void> {
+  async create<T extends object>(index: string, body: T): Promise<void> {
     await this.client.index({
       index,
       body,
