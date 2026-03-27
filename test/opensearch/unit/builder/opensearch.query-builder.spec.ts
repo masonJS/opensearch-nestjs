@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { createQuery } from '../../../src/index.js';
+import { createQuery } from '../../../../src/index.js';
 
-describe('OpenSearchQueryBuilder utility behavior', () => {
+describe('OpensearchQueryBuilder utility behavior', () => {
   it('includes boost when value is 0', () => {
     const query = createQuery<{ title: string }>()
       .match('title', 'hello', 0)

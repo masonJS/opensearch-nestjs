@@ -16,7 +16,7 @@ Initial public release as `opensearch-nestjs`. Extracted from internal `@us-all/
   - `OpensearchSearchService` — `search`, `count`
   - `OpensearchDocumentService` — `create`, `getOne`, `update`, `upsert`, `delete`, bulk operations (`bulkCreate`, `bulkUpdate`, `bulkUpsert`, `bulkDelete`, `deleteByQuery`)
   - `OpensearchIndexService` — `create`, `delete`, `putMapping`
-- Type-safe `OpenSearchQueryBuilder` with `createQuery<T>()`
+- Type-safe `OpensearchQueryBuilder` with `createQuery<T>()`
   - Query methods: `term`, `match`, `wildcard`, `range`, `exists`, `multiMatch`
   - Bool query: `must`, `should`, `filter`, `mustNot` with `minimumShouldMatch`
   - Sorting: `sortBy`, `sort` (with `SortBuilder` including `score()`)

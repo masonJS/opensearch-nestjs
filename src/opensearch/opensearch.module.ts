@@ -1,8 +1,8 @@
 import { DynamicModule, Module, ModuleMetadata } from '@nestjs/common';
 import { Client } from '@opensearch-project/opensearch';
-import { OpensearchDocumentService } from './opensearch.document-service.js';
-import { OpensearchSearchService } from './opensearch.search-service.js';
-import { OpensearchIndexService } from './opensearch.index-service.js';
+import { OpensearchDocumentService } from './service/opensearch.document.service.js';
+import { OpensearchSearchService } from './service/opensearch.search.service.js';
+import { OpensearchIndexService } from './service/opensearch.index.service.js';
 
 export interface OpenSearchModuleOptions {
   node: string;

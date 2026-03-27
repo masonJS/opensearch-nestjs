@@ -6,16 +6,16 @@ import {
   OpensearchDocumentService,
   OpensearchSearchService,
   OpensearchIndexService,
-} from '../../../src/index.js';
+} from '../../../../src/index.js';
 import {
   TestDoc,
   TEST_INDEX_NAME,
   TEST_INDEX_SETTINGS,
   createTestDoc,
-} from './test-index.js';
-import { TestFixture } from './test-fixture.js';
+} from '../test-index.js';
+import { TestFixture } from '../test-fixture.js';
 
-describe('OpenSearchQueryBuilder', () => {
+describe('OpensearchQueryBuilder', () => {
   let module: TestingModule;
   let client: Client;
   let documentService: OpensearchDocumentService;

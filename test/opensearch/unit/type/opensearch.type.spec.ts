@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createQuery } from '../../../src/index.js';
+import { createQuery } from '../../../../src/index.js';
 import type {
   Query,
   TermQuery,
@@ -12,7 +12,7 @@ import type {
   HighlightFieldOption,
   Highlight,
   OpenSearchQuery,
-} from '../../../src/index.js';
+} from '../../../../src/index.js';
 
 interface Article {
   title: { exact: string };
