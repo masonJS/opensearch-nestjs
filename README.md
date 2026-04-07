@@ -10,6 +10,7 @@ A [NestJS](https://nestjs.com/) module for [OpenSearch](https://opensearch.org/)
 - Typed search responses with highlight utilities
 - CRUD and bulk operations (create, update, upsert, delete)
 - Index management (create, delete, put mapping)
+- Fluent index mapping builder with field options, dynamic mapping, and `_source` config
 - Cursor-based pagination (`search_after`)
 - Conditional query building (`when`, `whenElse`, `each`)
 
@@ -324,13 +325,15 @@ import { createIndexMapping } from 'opensearch-nestjs';
 
 const articleMapping = createIndexMapping()
   .settings({ numberOfShards: 3, numberOfReplicas: 1 })
-  .text('title', { keyword: true })
+  .dynamic('strict')
+  .source({ excludes: ['rawContent'] })
+  .text('title', { keyword: true, analyzer: 'standard' })
   .text('body', { keyword: true, index: false, ignoreAbove: 10000 })
   .keyword('category')
-  .keyword('status')
+  .keyword('status', { normalizer: 'lowercase' })
   .boolean('isPublished')
-  .integer('viewCount')
-  .date('createdAt')
+  .integer('viewCount', { coerce: false })
+  .date('createdAt', { format: 'yyyy-MM-dd' })
   .date('updatedAt')
   .build();
 
@@ -339,19 +342,40 @@ await indexService.create('articles', articleMapping);
 
 #### Field Methods
 
-| Method                   | Description                                                                          |
-| ------------------------ | ------------------------------------------------------------------------------------ |
-| `text(field, options?)`  | Text field. Options: `keyword`, `index`, `ignoreAbove`, `analyzer`, `searchAnalyzer` |
-| `keyword(field)`         | Keyword field                                                                        |
-| `date(field)`            | Date field                                                                           |
-| `boolean(field)`         | Boolean field                                                                        |
-| `integer(field)`         | Integer field                                                                        |
-| `long(field)`            | Long field                                                                           |
-| `float(field)`           | Float field                                                                          |
-| `double(field)`          | Double field                                                                         |
-| `nested(field, builder)` | Nested object with sub-fields                                                        |
-| `object(field, builder)` | Object with sub-fields                                                               |
-| `custom(field, mapping)` | Raw mapping for any type (e.g. `geo_point`)                                          |
+| Method                             | Description                                                                 |
+| ---------------------------------- | --------------------------------------------------------------------------- |
+| `text(field, options?)`            | Text field. Options: `keyword`, `ignoreAbove`, `analyzer`, `searchAnalyzer` |
+| `keyword(field, options?)`         | Keyword field. Options: `ignoreAbove`, `normalizer`                         |
+| `date(field, options?)`            | Date field. Options: `format`                                               |
+| `boolean(field, options?)`         | Boolean field                                                               |
+| `integer(field, options?)`         | Integer field. Options: `coerce`                                            |
+| `long(field, options?)`            | Long field. Options: `coerce`                                               |
+| `float(field, options?)`           | Float field. Options: `coerce`                                              |
+| `double(field, options?)`          | Double field. Options: `coerce`                                             |
+| `nested(field, options?, builder)` | Nested object with sub-fields. Options: `dynamic`                           |
+| `object(field, options?, builder)` | Object with sub-fields. Options: `enabled`, `dynamic`                       |
+| `disabled(field)`                  | Shorthand for non-indexed object field (`enabled: false`)                   |
+| `custom(field, mapping)`           | Raw mapping for any type (e.g. `geo_point`)                                 |
+
+All field methods accept common options: `index`, `docValues`, `store`, `nullValue`, `copyTo`, `fields` (multi-field).
+
+#### Dynamic Mapping
+
+```typescript
+createIndexMapping()
+  .dynamic('strict') // true | false | 'strict' | 'runtime'
+  .keyword('status')
+  .build();
+```
+
+#### Source Configuration
+
+```typescript
+createIndexMapping()
+  .source({ enabled: true, excludes: ['largeField'] })
+  .keyword('status')
+  .build();
+```
 
 #### Nested / Object Fields
 
@@ -362,6 +386,13 @@ createIndexMapping()
   })
   .object('metadata', (b) => {
     b.keyword('source').integer('version');
+  })
+  // With options
+  .nested('tags', { dynamic: 'strict' }, (b) => {
+    b.keyword('name').float('score');
+  })
+  .object('config', { enabled: false }, (b) => {
+    b.keyword('key');
   })
   .build();
 ```
