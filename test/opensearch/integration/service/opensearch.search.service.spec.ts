@@ -24,8 +24,9 @@ describe('OpensearchSearchService', () => {
       imports: [OpensearchModule.forRoot({ node: 'http://localhost:9200' })],
     }).compile();
     client = module.get<Client>(Client);
-    searchService =
-      module.get<OpensearchSearchService>(OpensearchSearchService);
+    searchService = module.get<OpensearchSearchService>(
+      OpensearchSearchService,
+    );
 
     fixture = new TestFixture(client, TEST_INDEX_NAME);
     await fixture.createIndex(TEST_INDEX_SETTINGS);

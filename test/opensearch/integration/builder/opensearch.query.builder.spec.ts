@@ -1,9 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Client } from '@opensearch-project/opensearch';
-import {
-  createQuery,
-  OpensearchModule,
-} from '../../../../src/index.js';
+import { createQuery, OpensearchModule } from '../../../../src/index.js';
 import {
   TestDoc,
   TEST_INDEX_NAME,
@@ -753,9 +750,7 @@ describe('OpensearchQueryBuilder', () => {
     await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
 
     const result = await fixture.findQuery(
-      createQuery<TestDoc>()
-        .match('title', 'title')
-        .source(['title', 'type']),
+      createQuery<TestDoc>().match('title', 'title').source(['title', 'type']),
     );
 
     expect(result.hits).toHaveLength(1);
@@ -801,12 +796,8 @@ describe('OpensearchQueryBuilder', () => {
 
   describe('bool must / mustNot', () => {
     it('must query', async () => {
-      await fixture.insertDocument(
-        createTestDoc('title', 'body', 'TEST_A'),
-      );
-      await fixture.insertDocument(
-        createTestDoc('other', 'body', 'TEST_B'),
-      );
+      await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_A'));
+      await fixture.insertDocument(createTestDoc('other', 'body', 'TEST_B'));
 
       const result = await fixture.findQuery(
         createQuery<TestDoc>().bool((bool) => {
@@ -973,9 +964,11 @@ describe('OpensearchQueryBuilder', () => {
       );
 
       const result = await fixture.findQuery(
-        createQuery<TestDoc>().multiMatch('hello world', [
-          { field: 'title' },
-        ], 'phrase'),
+        createQuery<TestDoc>().multiMatch(
+          'hello world',
+          [{ field: 'title' }],
+          'phrase',
+        ),
       );
 
       expect(result.hits).toHaveLength(1);
