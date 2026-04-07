@@ -32,7 +32,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2025-03-25
 
-Initial public release as `opensearch-nestjs`. Extracted from internal `@us-all/us-opensearch` package.
 
 ### Added
 
@@ -61,7 +60,6 @@ Initial public release as `opensearch-nestjs`. Extracted from internal `@us-all/
 
 ### Changed
 
-- Package name: `@us-all/us-opensearch` -> `opensearch-nestjs`
 - Registry: GitHub Packages -> npmjs.com
 - `@opensearch-project/opensearch` moved from `dependencies` to `peerDependencies` (`>=2.0.0`)
 - Self-defined types replace deep imports for v2/v3 client compatibility
