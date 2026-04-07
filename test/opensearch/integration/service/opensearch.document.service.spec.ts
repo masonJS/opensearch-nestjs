@@ -24,8 +24,9 @@ describe('OpensearchDocumentService', () => {
       imports: [OpensearchModule.forRoot({ node: 'http://localhost:9200' })],
     }).compile();
     client = module.get<Client>(Client);
-    documentService =
-      module.get<OpensearchDocumentService>(OpensearchDocumentService);
+    documentService = module.get<OpensearchDocumentService>(
+      OpensearchDocumentService,
+    );
 
     fixture = new TestFixture(client, TEST_INDEX_NAME);
     await fixture.createIndex(TEST_INDEX_SETTINGS);
@@ -259,7 +260,10 @@ describe('OpensearchDocumentService', () => {
         createTestDoc('title3', 'body3', 'TEST_A'),
       ];
 
-      const result = await documentService.bulkCreate(TEST_INDEX_NAME, documents);
+      const result = await documentService.bulkCreate(
+        TEST_INDEX_NAME,
+        documents,
+      );
 
       expect(result.errors).toBe(false);
       expect(result.items).toHaveLength(3);
@@ -307,7 +311,10 @@ describe('OpensearchDocumentService', () => {
       await fixture.insertDocument(createTestDoc('title', 'body', 'TEST_B'));
 
       const query = createQuery<TestDoc>().term('type', 'TEST_A').build();
-      const deleted = await documentService.deleteByQuery(TEST_INDEX_NAME, query);
+      const deleted = await documentService.deleteByQuery(
+        TEST_INDEX_NAME,
+        query,
+      );
 
       expect(deleted).toBe(2);
       const remaining = await fixture.findQuery(createQuery<TestDoc>());

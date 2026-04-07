@@ -2,8 +2,20 @@
 // Types
 // ──────────────────────────────────────────────
 
+/**
+ * Controls whether new fields are automatically added to the mapping.
+ *
+ * - `true` — new fields are indexed automatically (default)
+ * - `false` — new fields are ignored
+ * - `'strict'` — throws an exception if an unknown field is encountered
+ * - `'runtime'` — new fields are added as runtime fields only
+ */
 export type DynamicMapping = true | false | 'strict' | 'runtime';
 
+/**
+ * Low-level OpenSearch field mapping definition.
+ * Represents the raw JSON structure sent to the OpenSearch mapping API.
+ */
 export interface FieldMapping {
   type?: string;
   index?: boolean;
@@ -23,16 +35,29 @@ export interface FieldMapping {
   properties?: Record<string, FieldMapping>;
 }
 
+/**
+ * Configuration for the `_source` field of an index mapping.
+ * Controls which fields are stored in and returned from `_source`.
+ */
 export interface SourceConfig {
+  /** Whether `_source` is enabled. Defaults to `true`. */
   enabled?: boolean;
+  /** Fields to include in `_source`. */
   includes?: string[];
+  /** Fields to exclude from `_source`. */
   excludes?: string[];
 }
 
+/**
+ * Index-level settings such as shard/replica counts and analysis configuration.
+ * Additional custom settings can be passed via the index signature.
+ */
 export interface IndexMappingSettings {
   numberOfShards?: number;
   numberOfReplicas?: number;
+  /** Custom analyzers, tokenizers, and filters configuration. */
   analysis?: Record<string, any>;
+  /** Maximum allowed difference between `min_gram` and `max_gram` for NGram tokenizers. */
   maxNgramDiff?: number;
   [key: string]: any;
 }
@@ -41,43 +66,87 @@ export interface IndexMappingSettings {
 // Field Options
 // ──────────────────────────────────────────────
 
+/**
+ * Common options shared across all field types.
+ */
 export interface CommonFieldOptions {
+  /** Whether the field should be searchable. Defaults to `true`. */
   index?: boolean;
+  /** Whether to store field values in a column-stride fashion for sorting/aggregations. */
   docValues?: boolean;
+  /** Whether the original field value should be stored separately. */
   store?: boolean;
+  /** Value to use when the field is `null` or missing. */
   nullValue?: string | number | boolean;
+  /** Copy the field value into one or more target fields. */
   copyTo?: string | string[];
+  /** Multi-field definitions for alternate indexing strategies. */
   fields?: Record<string, FieldMapping>;
 }
 
+/**
+ * Options specific to `text` fields.
+ *
+ * @example
+ * ```ts
+ * builder.text('title', { keyword: true, analyzer: 'standard' });
+ * ```
+ */
 export interface TextFieldOptions extends CommonFieldOptions {
+  /** When `true`, adds a `.exact` keyword sub-field. */
   keyword?: boolean;
+  /** Maximum length for the keyword sub-field. Strings longer than this are not indexed. */
   ignoreAbove?: number;
+  /** Analyzer to apply at index time. */
   analyzer?: string;
+  /** Analyzer to apply at search time (overrides index-time analyzer). */
   searchAnalyzer?: string;
 }
 
+/**
+ * Options specific to `keyword` fields.
+ */
 export interface KeywordFieldOptions extends CommonFieldOptions {
+  /** Maximum length for the keyword. Strings longer than this are not indexed. */
   ignoreAbove?: number;
+  /** Normalizer to apply to the keyword value before indexing. */
   normalizer?: string;
 }
 
+/**
+ * Options specific to `date` fields.
+ */
 export interface DateFieldOptions extends CommonFieldOptions {
+  /** Date format string (e.g. `'yyyy-MM-dd'`, `'epoch_millis'`). */
   format?: string;
 }
 
+/**
+ * Options specific to numeric fields (`integer`, `long`, `float`, `double`).
+ */
 export interface NumericFieldOptions extends CommonFieldOptions {
+  /** Whether to attempt to convert strings to numbers. Defaults to `true`. */
   coerce?: boolean;
 }
 
+/** Options for `boolean` fields. Inherits all common options. */
 export type BooleanFieldOptions = CommonFieldOptions;
 
+/**
+ * Options specific to `object` fields.
+ */
 export interface ObjectFieldOptions {
+  /** Whether the object content is indexed. Set to `false` to store without indexing. */
   enabled?: boolean;
+  /** Dynamic mapping strategy for unknown sub-fields. */
   dynamic?: DynamicMapping;
 }
 
+/**
+ * Options specific to `nested` fields.
+ */
 export interface NestedFieldOptions {
+  /** Dynamic mapping strategy for unknown sub-fields. */
   dynamic?: DynamicMapping;
 }
 
@@ -85,6 +154,24 @@ export interface NestedFieldOptions {
 // Builder
 // ──────────────────────────────────────────────
 
+/**
+ * Fluent builder for constructing OpenSearch index mappings and settings.
+ *
+ * Produces the JSON body expected by the
+ * [Create Index API](https://opensearch.org/docs/latest/api-reference/index-apis/create-index/).
+ *
+ * @example
+ * ```ts
+ * const body = createIndexMapping()
+ *   .settings({ numberOfShards: 1, numberOfReplicas: 0 })
+ *   .text('title', { keyword: true, analyzer: 'standard' })
+ *   .keyword('status')
+ *   .integer('price')
+ *   .date('createdAt', { format: 'yyyy-MM-dd' })
+ *   .nested('tags', (b) => b.keyword('name').float('score'))
+ *   .build();
+ * ```
+ */
 export class IndexMappingBuilder {
   private _settings: Record<string, any> | undefined;
   private _properties: Record<string, FieldMapping> = {};
@@ -93,6 +180,11 @@ export class IndexMappingBuilder {
 
   // ── Index-level settings ──────────────────
 
+  /**
+   * Sets index-level settings (shards, replicas, analysis, etc.).
+   *
+   * @param options - Index settings to apply
+   */
   settings(options: IndexMappingSettings): IndexMappingBuilder {
     const {
       numberOfShards,
@@ -116,11 +208,21 @@ export class IndexMappingBuilder {
     return this;
   }
 
+  /**
+   * Sets the top-level dynamic mapping strategy for the index.
+   *
+   * @param value - Dynamic mapping mode
+   */
   dynamic(value: DynamicMapping): IndexMappingBuilder {
     this._dynamic = value;
     return this;
   }
 
+  /**
+   * Configures the `_source` field (enable/disable, includes/excludes).
+   *
+   * @param config - Source field configuration
+   */
   source(config: SourceConfig): IndexMappingBuilder {
     this._source = config;
     return this;
@@ -128,6 +230,13 @@ export class IndexMappingBuilder {
 
   // ── Field methods ─────────────────────────
 
+  /**
+   * Adds a `text` field for full-text search.
+   * Optionally creates a `.exact` keyword sub-field when `keyword: true`.
+   *
+   * @param field - Field name
+   * @param options - Text field options
+   */
   text(field: string, options?: TextFieldOptions): IndexMappingBuilder {
     const mapping: FieldMapping = { type: 'text' };
 
@@ -153,6 +262,12 @@ export class IndexMappingBuilder {
     return this;
   }
 
+  /**
+   * Adds a `keyword` field for exact-match filtering, sorting, and aggregations.
+   *
+   * @param field - Field name
+   * @param options - Keyword field options
+   */
   keyword(field: string, options?: KeywordFieldOptions): IndexMappingBuilder {
     const mapping: FieldMapping = { type: 'keyword' };
 
@@ -168,6 +283,12 @@ export class IndexMappingBuilder {
     return this;
   }
 
+  /**
+   * Adds a `date` field.
+   *
+   * @param field - Field name
+   * @param options - Date field options (e.g. custom format)
+   */
   date(field: string, options?: DateFieldOptions): IndexMappingBuilder {
     const mapping: FieldMapping = { type: 'date' };
 
@@ -180,6 +301,12 @@ export class IndexMappingBuilder {
     return this;
   }
 
+  /**
+   * Adds a `boolean` field.
+   *
+   * @param field - Field name
+   * @param options - Boolean field options
+   */
   boolean(field: string, options?: BooleanFieldOptions): IndexMappingBuilder {
     const mapping: FieldMapping = { type: 'boolean' };
 
@@ -188,24 +315,66 @@ export class IndexMappingBuilder {
     return this;
   }
 
+  /**
+   * Adds an `integer` field (32-bit signed).
+   *
+   * @param field - Field name
+   * @param options - Numeric field options
+   */
   integer(field: string, options?: NumericFieldOptions): IndexMappingBuilder {
     return this.numericField(field, 'integer', options);
   }
 
+  /**
+   * Adds a `long` field (64-bit signed).
+   *
+   * @param field - Field name
+   * @param options - Numeric field options
+   */
   long(field: string, options?: NumericFieldOptions): IndexMappingBuilder {
     return this.numericField(field, 'long', options);
   }
 
+  /**
+   * Adds a `float` field (single-precision 32-bit IEEE 754).
+   *
+   * @param field - Field name
+   * @param options - Numeric field options
+   */
   float(field: string, options?: NumericFieldOptions): IndexMappingBuilder {
     return this.numericField(field, 'float', options);
   }
 
+  /**
+   * Adds a `double` field (double-precision 64-bit IEEE 754).
+   *
+   * @param field - Field name
+   * @param options - Numeric field options
+   */
   double(field: string, options?: NumericFieldOptions): IndexMappingBuilder {
     return this.numericField(field, 'double', options);
   }
 
   // ── Structured field methods ──────────────
 
+  /**
+   * Adds a `nested` field with its own sub-mapping.
+   * Nested objects are indexed as separate hidden documents,
+   * allowing independent querying of each nested object.
+   *
+   * @param field - Field name
+   * @param optionsOrBuilder - Either a builder callback or nested field options
+   * @param builder - Builder callback (required when options are provided)
+   *
+   * @example
+   * ```ts
+   * // Without options
+   * mapping.nested('tags', (b) => b.keyword('name').float('score'));
+   *
+   * // With options
+   * mapping.nested('tags', { dynamic: 'strict' }, (b) => b.keyword('name'));
+   * ```
+   */
   nested(
     field: string,
     optionsOrBuilder: ((b: IndexMappingBuilder) => void) | NestedFieldOptions,
@@ -228,6 +397,20 @@ export class IndexMappingBuilder {
     return this;
   }
 
+  /**
+   * Adds an `object` field with its own sub-mapping.
+   * Object fields are flattened into the parent document (not independently queryable).
+   *
+   * @param field - Field name
+   * @param optionsOrBuilder - Either a builder callback or object field options
+   * @param builder - Builder callback (required when options are provided)
+   *
+   * @example
+   * ```ts
+   * mapping.object('address', (b) => b.keyword('city').keyword('zip'));
+   * mapping.object('metadata', { enabled: false }, (b) => b.keyword('key'));
+   * ```
+   */
   object(
     field: string,
     optionsOrBuilder: ((b: IndexMappingBuilder) => void) | ObjectFieldOptions,
@@ -254,11 +437,24 @@ export class IndexMappingBuilder {
     return this;
   }
 
+  /**
+   * Adds a disabled `object` field.
+   * The field value is stored in `_source` but not indexed or searchable.
+   *
+   * @param field - Field name
+   */
   disabled(field: string): IndexMappingBuilder {
     this._properties[field] = { type: 'object', enabled: false };
     return this;
   }
 
+  /**
+   * Adds a field with a custom, raw mapping definition.
+   * Use this for field types not covered by the built-in methods.
+   *
+   * @param field - Field name
+   * @param mapping - Raw OpenSearch field mapping
+   */
   custom(field: string, mapping: FieldMapping): IndexMappingBuilder {
     this._properties[field] = mapping;
     return this;
@@ -266,6 +462,12 @@ export class IndexMappingBuilder {
 
   // ── Build ─────────────────────────────────
 
+  /**
+   * Builds and returns the final index creation body,
+   * ready to be passed to the OpenSearch Create Index API.
+   *
+   * @returns Object containing `mappings` (and optionally `settings`)
+   */
   build(): Record<string, any> {
     const mappings: Record<string, any> = {
       properties: this._properties,
@@ -308,7 +510,9 @@ export class IndexMappingBuilder {
     mapping: FieldMapping,
     options?: CommonFieldOptions,
   ): void {
-    if (!options) return;
+    if (!options) {
+      return;
+    }
 
     if (options.index === false && !mapping.fields?.exact) {
       mapping.index = false;
@@ -355,4 +559,15 @@ export class IndexMappingBuilder {
   }
 }
 
+/**
+ * Factory function to create a new {@link IndexMappingBuilder} instance.
+ *
+ * @example
+ * ```ts
+ * const body = createIndexMapping()
+ *   .keyword('status')
+ *   .text('title', { keyword: true })
+ *   .build();
+ * ```
+ */
 export const createIndexMapping = () => new IndexMappingBuilder();

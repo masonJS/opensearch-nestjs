@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `IndexMappingBuilder` field options for fine-grained control:
+  - `CommonFieldOptions` — `index`, `docValues`, `store`, `nullValue`, `copyTo`, `fields` (multi-field)
+  - `TextFieldOptions` — `keyword`, `ignoreAbove`, `analyzer`, `searchAnalyzer`
+  - `KeywordFieldOptions` — `ignoreAbove`, `normalizer`
+  - `DateFieldOptions` — `format`
+  - `NumericFieldOptions` — `coerce`
+  - `ObjectFieldOptions` — `enabled`, `dynamic`
+  - `NestedFieldOptions` — `dynamic`
+- `IndexMappingBuilder.dynamic()` for top-level dynamic mapping strategy (`true`, `false`, `'strict'`, `'runtime'`)
+- `IndexMappingBuilder.source()` for `_source` field configuration (`enabled`, `includes`, `excludes`)
+- `IndexMappingBuilder.disabled()` shorthand for non-indexed object fields
+- Options overload for `nested()` and `object()` — accept `(field, options, builder)` in addition to `(field, builder)`
+- JSDoc documentation across all public APIs (types, builders, services)
+
+### Changed
+
+- Reorganized module into `builder/`, `service/`, `type/` subdirectories
+- Renamed `OpenSearchQueryBuilder` to `OpensearchQueryBuilder` for consistent naming
+- Moved integration tests into dedicated service-level spec files
+- Updated prettier config and dependencies
+
 ## [0.1.0] - 2025-03-25
 
 Initial public release as `opensearch-nestjs`. Extracted from internal `@us-all/us-opensearch` package.
